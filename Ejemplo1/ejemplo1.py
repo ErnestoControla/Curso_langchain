@@ -9,7 +9,7 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 # Configuración de la base de datos Chroma
 CHROMA_HOST = "localhost"
@@ -20,6 +20,11 @@ COLLECTION_NAME = "documentos_pdf"
 CHUNK_SIZE = 1000  # Tamaño de cada chunk en caracteres
 CHUNK_OVERLAP = 200  # Solapamiento entre chunks para mantener contexto
 DOCUMENTS_PATH = "/home/ernesto/Proyectos_local/Curso_langchain/Ejemplo1/Documentos/"
+
+# Configuración de Ollama
+OLLAMA_HOST = "172.16.1.37"
+OLLAMA_PORT = 11434
+OLLAMA_MODEL = "nomic-embed-text:latest"  # Modelo específico para embeddings
 
 def cargar_documentos_pdf(ruta_documentos):
     """
@@ -64,8 +69,11 @@ def inicializar_chroma():
     Inicializa la conexión con Chroma
     """
     try:
-        # Usar OllamaEmbeddings para embeddings locales
-        embeddings = OllamaEmbeddings(model="llama2")
+        # Usar OllamaEmbeddings con el modelo nomic-embed-text
+        embeddings = OllamaEmbeddings(
+            model=OLLAMA_MODEL,
+            base_url=f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+        )
         
         # Inicializar Chroma con configuración simplificada
         chroma_client = Chroma(
@@ -80,7 +88,10 @@ def inicializar_chroma():
         print("Intentando con configuración alternativa...")
         
         # Configuración alternativa sin persist_directory
-        embeddings = OllamaEmbeddings(model="llama2")
+        embeddings = OllamaEmbeddings(
+            model=OLLAMA_MODEL,
+            base_url=f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+        )
         chroma_client = Chroma(
             collection_name=COLLECTION_NAME,
             embedding_function=embeddings
@@ -112,6 +123,12 @@ def main():
     Función principal que ejecuta todo el proceso
     """
     print("=== Iniciando proceso de vectorización de documentos PDF ===\n")
+    print(f"Configuración:")
+    print(f"- Modelo Ollama: {OLLAMA_MODEL}")
+    print(f"- Host Ollama: {OLLAMA_HOST}:{OLLAMA_PORT}")
+    print(f"- Base de datos: {CHROMA_HOST}:{CHROMA_PORT}")
+    print(f"- Tamaño de chunks: {CHUNK_SIZE}")
+    print(f"- Solapamiento: {CHUNK_OVERLAP}\n")
     
     # 1. Cargar documentos PDF
     print("1. Cargando documentos PDF...")
@@ -145,6 +162,7 @@ def main():
     print("\n=== Proceso completado ===")
     print(f"Documentos vectorizados en la colección: {COLLECTION_NAME}")
     print(f"Base de datos: {CHROMA_HOST}:{CHROMA_PORT}")
+    print(f"Modelo utilizado: {OLLAMA_MODEL}")
 
 if __name__ == "__main__":
     main()

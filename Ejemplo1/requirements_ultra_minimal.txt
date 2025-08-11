@@ -1,4 +1,7 @@
 langchain
 langchain-core
+langchain-community
+langchain-chroma
+langchain-ollama
 chromadb
 pypdf

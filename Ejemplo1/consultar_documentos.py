@@ -4,19 +4,27 @@ Versión compatible con LangChain 0.3.27
 """
 
 from langchain_chroma import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 # Configuración de la base de datos Chroma
 CHROMA_HOST = "localhost"
 CHROMA_PORT = 8000
 COLLECTION_NAME = "documentos_pdf"
 
+# Configuración de Ollama
+OLLAMA_HOST = "172.16.1.37"
+OLLAMA_PORT = 11434
+OLLAMA_MODEL = "nomic-embed-text:latest"  # Modelo específico para embeddings
+
 def inicializar_chroma():
     """
     Inicializa la conexión con Chroma
     """
     try:
-        embeddings = OllamaEmbeddings(model="llama2")
+        embeddings = OllamaEmbeddings(
+            model=OLLAMA_MODEL,
+            base_url=f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+        )
         
         chroma_client = Chroma(
             collection_name=COLLECTION_NAME,
@@ -28,7 +36,10 @@ def inicializar_chroma():
     except Exception as e:
         print(f"Error al inicializar Chroma: {e}")
         # Configuración alternativa
-        embeddings = OllamaEmbeddings(model="llama2")
+        embeddings = OllamaEmbeddings(
+            model=OLLAMA_MODEL,
+            base_url=f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+        )
         chroma_client = Chroma(
             collection_name=COLLECTION_NAME,
             embedding_function=embeddings
@@ -71,6 +82,7 @@ def obtener_estadisticas(chroma_client):
         print(f"Total de documentos: {count}")
         print(f"Colección: {COLLECTION_NAME}")
         print(f"Host: {CHROMA_HOST}:{CHROMA_PORT}")
+        print(f"Modelo utilizado: {OLLAMA_MODEL}")
         
         return count
         
@@ -83,6 +95,10 @@ def main():
     Función principal para consultar documentos
     """
     print("=== Consulta de Documentos Vectorizados ===\n")
+    print(f"Configuración:")
+    print(f"- Modelo Ollama: {OLLAMA_MODEL}")
+    print(f"- Host Ollama: {OLLAMA_HOST}:{OLLAMA_PORT}")
+    print(f"- Base de datos: {CHROMA_HOST}:{CHROMA_PORT}\n")
     
     # Inicializar Chroma
     try:

@@ -9,7 +9,7 @@ Este proyecto permite cargar documentos PDF, dividirlos en chunks y vectorizarlo
 - **ChromaDB**: 1.0.16
 - **PyPDF**: 5.9.0
 
-## Configuración de la Base de Datos
+## Configuración del Sistema
 
 ### Configuraciones Importantes:
 
@@ -24,9 +24,14 @@ Este proyecto permite cargar documentos PDF, dividirlos en chunks y vectorizarlo
 3. **Puerto de Chroma**: 8000
    - Asegúrate de que Chroma esté ejecutándose en este puerto
 
-4. **Modelo de Embeddings**: llama2 (Ollama)
-   - Embeddings locales para mayor privacidad
-   - Requiere Ollama instalado con el modelo llama2
+4. **Modelo de Embeddings**: gpt-oss:20b (Ollama)
+   - Modelo avanzado para embeddings de alta calidad
+   - Requiere Ollama instalado con el modelo gpt-oss:20b
+
+5. **Configuración de Ollama**:
+   - Host: localhost
+   - Puerto: 11434
+   - Modelo: gpt-oss:20b
 
 ## Instalación y Configuración
 
@@ -46,8 +51,8 @@ ollama --version
 # Verificar modelos disponibles
 ollama list
 
-# Si no tienes llama2, instalarlo
-ollama pull llama2
+# Si no tienes gpt-oss:20b, instalarlo
+ollama pull gpt-oss:20b
 ```
 
 ## Uso del Sistema
@@ -61,7 +66,7 @@ Este script:
 - Carga todos los PDF de la carpeta `Documentos/`
 - Los divide en chunks de 1000 caracteres
 - Los vectoriza en la base de datos Chroma
-- Usa embeddings locales con Ollama
+- Usa embeddings con el modelo gpt-oss:120b
 
 ### 2. Consultar Documentos Vectorizados:
 ```bash
@@ -100,9 +105,13 @@ chroma_client = Chroma(
 )
 ```
 
-**Embeddings:**
-- Modelo: llama2 (recomendado para español)
-- Alternativas: nomic-embed-text, all-MiniLM-L6-v2
+**Embeddings con gpt-oss:120b:**
+```python
+embeddings = OllamaEmbeddings(
+    model="gpt-oss:20b",
+    base_url="http://localhost:11434"
+)
+```
 
 ## Estructura del Proyecto
 
@@ -126,7 +135,7 @@ Ejemplo1/
 
 ### Error de Embeddings:
 - Verificar que Ollama esté instalado
-- Descargar modelo: `ollama pull llama2`
+- Descargar modelo: `ollama pull gpt-oss:120b`
 - Verificar que el modelo esté disponible: `ollama list`
 
 ### Error al Cargar PDFs:
@@ -177,4 +186,7 @@ print(f'LangChain: {langchain.__version__}')
 print(f'LangChain Core: {langchain_core.__version__}')
 print(f'ChromaDB: {chromadb.__version__}')
 "
+
+# Verificar que el modelo gpt-oss:20b esté disponible
+ollama list | grep gpt-oss
 ```
