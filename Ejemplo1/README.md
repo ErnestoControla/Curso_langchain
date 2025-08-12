@@ -130,6 +130,18 @@ Este script permite:
 - Exportar reportes en JSON
 - Modo interactivo para exploración
 
+### 5. Gestionar Base de Datos:
+```bash
+python limpiar_bd.py
+```
+
+Este script permite:
+- Eliminar toda la colección
+- Eliminar documentos específicos
+- Eliminar directorio de datos
+- Crear backups
+- Modo interactivo para gestión
+
 ## 🔧 Configuraciones Recomendadas
 
 ### Para Diferentes Tipos de Contenido:
@@ -181,6 +193,7 @@ Ejemplo1/
 ├── consultar_documentos.py        # Script de consultas simples
 ├── consultar_con_llm.py          # Script de consultas con LLM
 ├── database_monitor.py           # Monitor de base de datos
+├── limpiar_bd.py                 # Script de limpieza y gestión
 ├── test_system.py                # Script de pruebas del sistema
 ├── config.py                     # Configuración centralizada
 ├── requirements_ultra_minimal.txt # Dependencias exactas
@@ -247,6 +260,238 @@ chroma_client.delete_collection()
 ### Backup de Datos:
 - Los datos se guardan en `chroma_data/`
 - Hacer backup regular de esta carpeta
+
+## 🗑️ Gestión y Limpieza de la Base de Datos
+
+### 🔄 Reemplazar Documentos Completamente
+
+Si quieres cambiar todos los documentos y empezar desde cero:
+
+#### Opción 1: Eliminar Colección (Recomendado)
+```python
+# En un script Python o en el intérprete
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
+from config import get_ollama_config, get_chroma_config, get_models_config
+
+# Inicializar cliente
+config = get_chroma_config()
+ollama_config = get_ollama_config()
+models_config = get_models_config()
+
+embeddings = OllamaEmbeddings(
+    model=models_config["embedding_model"],
+    base_url=ollama_config["base_url"]
+)
+
+chroma_client = Chroma(
+    collection_name=config["collection_name"],
+    embedding_function=embeddings,
+    persist_directory=config["persist_directory"]
+)
+
+# Eliminar toda la colección
+chroma_client.delete_collection()
+print("✅ Colección eliminada completamente")
+
+# Ahora puedes ejecutar ejemplo1.py para vectorizar nuevos documentos
+```
+
+#### Opción 2: Eliminar Directorio de Datos
+```bash
+# Detener Chroma si está ejecutándose
+docker-compose down
+
+# Eliminar directorio de datos
+rm -rf chroma_data/
+
+# Reiniciar Chroma
+docker-compose up -d
+
+# Ejecutar vectorización de nuevos documentos
+python ejemplo1.py
+```
+
+#### Opción 3: Script de Limpieza Automática
+```python
+# Crear archivo: limpiar_bd.py
+import shutil
+import os
+from config import get_chroma_config
+
+def limpiar_base_datos():
+    """Limpia completamente la base de datos"""
+    config = get_chroma_config()
+    
+    print("🗑️ Limpiando base de datos...")
+    
+    # Opción 1: Eliminar directorio completo
+    if os.path.exists(config["persist_directory"]):
+        shutil.rmtree(config["persist_directory"])
+        print(f"✅ Directorio {config['persist_directory']} eliminado")
+    
+    # Opción 2: Eliminar solo archivos de datos
+    # for file in os.listdir(config["persist_directory"]):
+    #     if file.endswith('.parquet') or file.endswith('.sqlite3'):
+    #         os.remove(os.path.join(config["persist_directory"], file))
+    #         print(f"✅ Archivo {file} eliminado")
+    
+    print("🎉 Base de datos limpiada. Ejecuta 'python ejemplo1.py' para vectorizar nuevos documentos")
+
+if __name__ == "__main__":
+    limpiar_base_datos()
+```
+
+### 📝 Eliminar Documentos Específicos
+
+Para eliminar solo ciertos documentos:
+
+```python
+# Eliminar documentos por fuente
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
+from config import get_ollama_config, get_chroma_config, get_models_config
+
+# Inicializar cliente
+config = get_chroma_config()
+ollama_config = get_ollama_config()
+models_config = get_models_config()
+
+embeddings = OllamaEmbeddings(
+    model=models_config["embedding_model"],
+    base_url=ollama_config["base_url"]
+)
+
+chroma_client = Chroma(
+    collection_name=config["collection_name"],
+    embedding_function=embeddings,
+    persist_directory=config["persist_directory"]
+)
+
+# Obtener todos los documentos
+results = chroma_client.get()
+
+# Encontrar IDs de documentos específicos
+documentos_a_eliminar = []
+for i, metadata in enumerate(results['metadatas']):
+    if metadata and 'source' in metadata:
+        # Ejemplo: eliminar documentos de un PDF específico
+        if 'documento_especifico.pdf' in metadata['source']:
+            documentos_a_eliminar.append(results['ids'][i])
+
+# Eliminar documentos específicos
+if documentos_a_eliminar:
+    chroma_client.delete(ids=documentos_a_eliminar)
+    print(f"✅ {len(documentos_a_eliminar)} documentos eliminados")
+else:
+    print("ℹ️ No se encontraron documentos para eliminar")
+```
+
+### 🔍 Verificar Estado Antes de Limpiar
+
+```bash
+# Verificar contenido actual
+python database_monitor.py
+
+# Ver estadísticas básicas
+python -c "
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
+from config import get_ollama_config, get_chroma_config, get_models_config
+
+config = get_chroma_config()
+ollama_config = get_ollama_config()
+models_config = get_models_config()
+
+embeddings = OllamaEmbeddings(
+    model=models_config['embedding_model'],
+    base_url=ollama_config['base_url']
+)
+
+chroma_client = Chroma(
+    collection_name=config['collection_name'],
+    embedding_function=embeddings,
+    persist_directory=config['persist_directory']
+)
+
+count = chroma_client._collection.count()
+print(f'📊 Documentos actuales: {count}')
+
+if count > 0:
+    results = chroma_client.get()
+    sources = set()
+    for metadata in results['metadatas']:
+        if metadata and 'source' in metadata:
+            sources.add(metadata['source'])
+    
+    print('📁 Fuentes actuales:')
+    for source in sources:
+        print(f'   - {source}')
+"
+```
+
+### 📋 Flujo de Trabajo para Cambiar Documentos
+
+1. **Verificar estado actual:**
+   ```bash
+   python database_monitor.py
+   ```
+
+2. **Limpiar base de datos:**
+   ```bash
+   # Opción A: Usar script de limpieza
+   python limpiar_bd.py
+   
+   # Opción B: Eliminar colección manualmente
+   chroma_client.delete_collection()
+   
+   # Opción C: Eliminar directorio
+   rm -rf chroma_data/
+   ```
+
+3. **Colocar nuevos documentos:**
+   ```bash
+   # Reemplazar archivos en Documentos/
+   cp nuevos_documentos.pdf Documentos/
+   ```
+
+4. **Vectorizar nuevos documentos:**
+   ```bash
+   python ejemplo1.py
+   ```
+
+5. **Verificar resultado:**
+   ```bash
+   python database_monitor.py
+   ```
+
+### ⚠️ Consideraciones Importantes
+
+- **Backup**: Antes de limpiar, considera hacer backup de `chroma_data/`
+- **Tiempo**: La vectorización puede tomar tiempo dependiendo del tamaño de los documentos
+- **Espacio**: Los vectores ocupan espacio significativo en disco
+- **Persistencia**: Los datos se mantienen entre reinicios del sistema
+- **Concurrencia**: No ejecutar múltiples procesos de vectorización simultáneamente
+
+### 🛠️ Scripts de Utilidad
+
+#### Backup de Base de Datos:
+```bash
+# Crear backup con timestamp
+tar -czf backup_chroma_$(date +%Y%m%d_%H%M%S).tar.gz chroma_data/
+```
+
+#### Restaurar Backup:
+```bash
+# Restaurar desde backup
+tar -xzf backup_chroma_20241224_143022.tar.gz
+```
+
+#### Verificar Tamaño de Datos:
+```bash
+# Ver tamaño del directorio de datos
+du -sh chroma_data/
+```
 
 ## ⚡ Rendimiento y Optimización
 
@@ -336,6 +581,14 @@ curl -s http://172.16.1.37:11434/api/tags | python -c "import sys, json; data=js
 4. **Verificación de la BD**: Ejecutar `python database_monitor.py`
 5. **Consulta**: Ejecutar `python consultar_con_llm.py`
 6. **Mantenimiento**: Backup regular de `chroma_data/`
+
+### 🔄 Flujo para Cambiar Documentos:
+
+1. **Verificar estado**: `python database_monitor.py`
+2. **Limpiar BD**: `python limpiar_bd.py`
+3. **Reemplazar PDFs**: Copiar nuevos archivos a `Documentos/`
+4. **Vectorizar**: `python ejemplo1.py`
+5. **Verificar**: `python database_monitor.py`
 
 ## 📈 Métricas del Sistema
 
