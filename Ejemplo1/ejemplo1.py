@@ -49,20 +49,171 @@ def cargar_documentos_pdf(ruta_documentos):
     
     return documentos
 
+def analizar_tipo_contenido(texto):
+    """
+    Analiza el tipo de contenido del documento para optimizar separadores
+    """
+    texto_lower = texto.lower()
+    
+    # Detectar tipo de documento
+    tipo_documento = "general"
+    
+    # Detectar papers académicos
+    if any(palabra in texto_lower for palabra in ["abstract", "introduction", "methodology", "conclusion", "references"]):
+        tipo_documento = "academico"
+    
+    # Detectar documentos técnicos con código
+    if any(palabra in texto_lower for palabra in ["def ", "class ", "import ", "function", "algorithm"]):
+        tipo_documento = "tecnico"
+    
+    # Detectar documentos con tablas
+    if "|" in texto or "\t" in texto:
+        tipo_documento = "tabular"
+    
+    # Detectar documentos con listas
+    if any(palabra in texto for palabra in ["•", "- ", "* ", "1. ", "2. "]):
+        tipo_documento = "lista"
+    
+    return tipo_documento
+
+def obtener_separadores_optimizados(tipo_documento):
+    """
+    Retorna separadores optimizados según el tipo de documento
+    """
+    separadores_base = [
+        # Separadores de estructura principal
+        "\n\n",      # Párrafos (doble salto de línea)
+        "\n",        # Líneas (salto de línea simple)
+        " ",         # Espacios entre palabras
+        ""           # Caracteres individuales (último recurso)
+    ]
+    
+    separadores_especificos = {
+        "academico": [
+            "Abstract",
+            "Introduction",
+            "Methodology",
+            "Results",
+            "Conclusion",
+            "References",
+            "## ",
+            "### ",
+            "#### ",
+            "1. ",
+            "2. ",
+            "3. ",
+            "4. ",
+            "5. ",
+            "6. ",
+            "7. ",
+            "8. ",
+            "9. ",
+            "10. ",
+            "•",
+            "- ",
+            "* "
+        ],
+        "tecnico": [
+            "```",
+            "```\n",
+            "{",
+            "}",
+            "(",
+            ")",
+            ";",
+            "def ",
+            "class ",
+            "import ",
+            "function",
+            "algorithm",
+            "1. ",
+            "2. ",
+            "3. ",
+            "4. ",
+            "5. ",
+            "•",
+            "- ",
+            "* "
+        ],
+        "tabular": [
+            "|",
+            "\t",
+            ";",
+            ",",
+            "1. ",
+            "2. ",
+            "3. ",
+            "4. ",
+            "5. ",
+            "•",
+            "- ",
+            "* "
+        ],
+        "lista": [
+            "1. ",
+            "2. ",
+            "3. ",
+            "4. ",
+            "5. ",
+            "6. ",
+            "7. ",
+            "8. ",
+            "9. ",
+            "10. ",
+            "•",
+            "- ",
+            "* "
+        ],
+        "general": [
+            "1. ",
+            "2. ",
+            "3. ",
+            "4. ",
+            "5. ",
+            "•",
+            "- ",
+            "* ",
+            "## ",
+            "### ",
+            "#### "
+        ]
+    }
+    
+    # Combinar separadores base con específicos
+    separadores = separadores_especificos.get(tipo_documento, separadores_especificos["general"]) + separadores_base
+    return separadores
+
 def dividir_documentos(documentos, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP):
     """
     Divide los documentos en chunks más pequeños para mejor procesamiento
+    Utiliza separadores específicos para diferentes tipos de contenido
     """
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        length_function=len,
-        separators=["\n\n", "\n", " ", ""]
-    )
+    chunks_totales = []
     
-    chunks = text_splitter.split_documents(documentos)
-    print(f"Documentos divididos en {len(chunks)} chunks")
-    return chunks
+    for documento in documentos:
+        # Analizar tipo de contenido
+        tipo_contenido = analizar_tipo_contenido(documento.page_content)
+        separadores = obtener_separadores_optimizados(tipo_contenido)
+        
+        print(f"📄 Tipo de documento detectado: {tipo_contenido}")
+        print(f"   - Separadores aplicados: {len(separadores)}")
+        
+        # Crear text splitter optimizado para este documento
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=len,
+            separators=separadores
+        )
+        
+        # Dividir este documento específico
+        chunks_documento = text_splitter.split_documents([documento])
+        chunks_totales.extend(chunks_documento)
+        
+        print(f"   - Chunks generados: {len(chunks_documento)}")
+    
+    print(f"\n📊 Total de chunks generados: {len(chunks_totales)}")
+    return chunks_totales
 
 def inicializar_chroma():
     """
