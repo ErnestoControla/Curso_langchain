@@ -142,6 +142,19 @@ Este script permite:
 - Crear backups
 - Modo interactivo para gestión
 
+### 6. Analizar Índices de la Base de Datos:
+```bash
+python ver_indices.py
+```
+
+Este script permite:
+- Ver información básica de índices
+- Analizar estructura detallada de archivos
+- Medir rendimiento de consultas
+- Ver configuración de índices
+- Exportar reportes de índices
+- Modo interactivo para análisis
+
 ## 🔧 Configuraciones Recomendadas
 
 ### Para Diferentes Tipos de Contenido:
@@ -194,6 +207,7 @@ Ejemplo1/
 ├── consultar_con_llm.py          # Script de consultas con LLM
 ├── database_monitor.py           # Monitor de base de datos
 ├── limpiar_bd.py                 # Script de limpieza y gestión
+├── ver_indices.py                # Analizador de índices
 ├── test_system.py                # Script de pruebas del sistema
 ├── config.py                     # Configuración centralizada
 ├── requirements_ultra_minimal.txt # Dependencias exactas
@@ -491,6 +505,72 @@ tar -xzf backup_chroma_20241224_143022.tar.gz
 ```bash
 # Ver tamaño del directorio de datos
 du -sh chroma_data/
+```
+
+## 🔍 Análisis de Índices de la Base de Datos
+
+### ¿Qué Información Proporcionan los Índices?
+
+Los índices en Chroma DB contienen información muy valiosa sobre:
+
+#### 📊 **Información Estructural:**
+- **Archivos de índices**: `data_level0.bin`, `chroma.sqlite3`, `header.bin`, etc.
+- **Tamaño de archivos**: Distribución del espacio en disco
+- **Tipo de índice**: HNSW (Hierarchical Navigable Small World)
+- **Dimensión de vectores**: 768 dimensiones para nomic-embed-text
+
+#### ⚡ **Métricas de Rendimiento:**
+- **Tiempo de consulta**: Milisegundos por búsqueda
+- **Distribución de documentos**: Chunks por PDF y por página
+- **Eficiencia de búsqueda**: Velocidad de recuperación de resultados
+
+#### 🏗️ **Configuración del Sistema:**
+- **Modelo de embeddings**: nomic-embed-text:latest
+- **Dimensión de vectores**: 768
+- **Tamaño de chunks**: 1000 caracteres
+- **Solapamiento**: 200 caracteres
+
+### 📈 **Información Valiosa Revelada:**
+
+#### **Estructura de Archivos:**
+```
+📁 chroma_data/
+├── chroma.sqlite3: 2.07 MB (metadatos)
+├── data_level0.bin: 30.63 MB (vectores)
+├── header.bin: 0.00 MB (cabeceras)
+├── length.bin: 0.04 MB (longitudes)
+└── link_lists.bin: 0.00 MB (enlaces HNSW)
+```
+
+#### **Rendimiento de Consultas:**
+- **'YOLO'**: 1054.36ms (primera consulta, más lenta)
+- **'detection'**: 64.91ms (consultas subsecuentes, más rápidas)
+- **'model'**: 86.24ms
+- **'architecture'**: 66.23ms
+
+#### **Distribución de Datos:**
+- **Total**: 114 chunks
+- **YOLOv11**: 40 chunks (35.1%)
+- **YOLOv12**: 74 chunks (64.9%)
+- **Páginas**: Distribución equilibrada (4.4% - 11.4% por página)
+
+### 🎯 **Valor de la Información de Índices:**
+
+1. **Optimización de Rendimiento**: Identificar consultas lentas
+2. **Gestión de Espacio**: Monitorear uso de disco
+3. **Balanceo de Datos**: Verificar distribución de documentos
+4. **Diagnóstico de Problemas**: Detectar índices corruptos
+5. **Planificación de Escalabilidad**: Predecir necesidades de recursos
+
+### 🔧 **Uso del Analizador de Índices:**
+
+```bash
+# Análisis completo automático
+python ver_indices.py
+
+# Modo interactivo
+python ver_indices.py
+# Comandos: basic, structure, performance, config, export, quit
 ```
 
 ## ⚡ Rendimiento y Optimización
